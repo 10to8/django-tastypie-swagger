@@ -72,14 +72,26 @@ class ResourceSwaggerMapping(object):
         self.schema = self.resource.build_schema()
 
     def get_pk_type(self):
-        django_internal_type = self.resource._meta.object_class._meta.pk.get_internal_type()
+
+        # Support Non Django ORM objects.
+        meta = getattr(self.resource._meta.object_class,'_meta', None)
+        if meta is None:
+            return "unknown"
+
+        django_internal_type = meta.pk.get_internal_type()
         if django_internal_type in ('ManyToManyField', 'OneToOneField', 'ForeignKey'):
-            return DJANGO_FIELD_TYPE.get(self.resource._meta.object_class._meta.pk.related_field, 'unknown')
+            return DJANGO_FIELD_TYPE.get(meta.pk.related_field, 'unknown')
         else:
             return DJANGO_FIELD_TYPE.get(django_internal_type, 'unknown')
 
     def get_related_field_type(self, field_name):
-        for field in self.resource._meta.object_class._meta.fields:
+
+        # Support Non Django ORM objects.
+        meta = getattr(self.resource._meta.object_class,'_meta', None)
+        if meta is None:
+            return "unknown"
+
+        for field in meta.fields:
             if field_name == field.name:
                 try:
                    related_field_type = field.related_field.get_internal_type()
